@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '#results', label: 'Results' },
   { href: '#process', label: 'Process' },
   { href: '#about', label: 'About' },
+  { href: '#insights', label: 'Insights' },
 ];
 
 export default function Navbar() {

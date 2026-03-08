@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://archos-ai.vercel.app/sitemap.xml
