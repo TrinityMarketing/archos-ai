@@ -1,0 +1,98 @@
+.particle-interlude {
+  position: relative;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.particle-interlude-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  height: 320px;
+}
+
+.particle-interlude-caption {
+  position: absolute;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 0;
+  margin-top: -16px;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.particle-interlude:hover .particle-interlude-caption {
+  opacity: 0;
+}
+
+/* --- Mission --- */
+.particle-mission {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 16px 24px 64px;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.particle-mission.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.particle-mission-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.particle-mission-label {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.particle-mission-text {
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 900px) {
+  .particle-interlude-inner {
+    height: 260px;
+  }
+
+  .particle-mission {
+    padding: 12px 24px 48px;
+  }
+}
+
+@media (max-width: 600px) {
+  .particle-interlude-inner {
+    height: 200px;
+  }
+
+  .particle-mission {
+    padding: 8px 20px 40px;
+  }
+
+  .particle-mission-text {
+    font-size: 0.9375rem;
+  }
+}
