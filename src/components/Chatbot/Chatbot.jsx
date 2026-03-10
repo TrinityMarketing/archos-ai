@@ -1,22 +1,85 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import './Chatbot.css';
 
+/* ─── Service options shown as quick replies ─── */
 const SERVICE_OPTIONS = [
   'AI Strategy & Consulting',
   'Workflow Automation',
   'AI Integration & Deployment',
   'Data Infrastructure',
   'AI Agent Systems',
-  'Something else',
+  'Not sure yet',
 ];
 
 const REVENUE_OPTIONS = [
+  'Less than $1M',
   '$1M – $5M',
   '$5M – $10M',
-  '$10M – $50M',
-  '$50M+',
-  'Prefer not to say',
+  '$10M – $25M',
+  '$25M – $50M',
+  '$50M – $100M',
+  '$100M+',
 ];
+
+const TIMELINE_OPTIONS = [
+  'ASAP — we need help now',
+  'Next 1–3 months',
+  'Next 3–6 months',
+  'Just exploring',
+];
+
+const ROLE_OPTIONS = [
+  'CEO / Founder',
+  'CTO / VP Engineering',
+  'COO / Operations',
+  'Head of Product',
+  'Director / Manager',
+  'Other',
+];
+
+/* ─── Context-aware responses per service interest ─── */
+const INTEREST_RESPONSES = {
+  'AI Strategy & Consulting':
+    "Smart move. Most companies waste 6–12 months going in the wrong direction before they bring in a strategist. We help you skip that entirely — audit what you have, identify the highest-ROI opportunities, and build a roadmap your team can actually execute on.",
+  'Workflow Automation':
+    "That's where we see the fastest wins. We've helped companies cut operational costs by 40–60% by automating the workflows that eat up the most human hours. The key is picking the right processes first — not everything should be automated.",
+  'AI Integration & Deployment':
+    "Integration is where most AI projects fail. It's not about the model — it's about making it work reliably inside your existing systems. We handle the hard part: connecting AI to your actual workflows, data, and team.",
+  'Data Infrastructure':
+    "Good instinct. Your AI is only as good as the data feeding it. We see a lot of companies try to bolt on AI before their data layer is ready, and it never works. We help you build the foundation that makes everything else possible.",
+  'AI Agent Systems':
+    "AI agents are the next frontier. We build autonomous systems that don't just answer questions — they take actions, make decisions, and handle entire workflows end-to-end. Most companies aren't ready for this yet, but the ones that are see massive leverage.",
+  'Not sure yet':
+    "No problem at all — that's actually a great place to start. Most of our best engagements begin with a company that knows AI could help but isn't sure where. That's exactly what our discovery process is for.",
+};
+
+/* ─── Challenge follow-ups based on interest ─── */
+const CHALLENGE_FOLLOWUPS = {
+  'AI Strategy & Consulting':
+    "We hear that a lot. The good news is that a focused 2–3 week strategy sprint usually gets companies from 'where do we even start' to a clear, prioritized plan.",
+  'Workflow Automation':
+    "That's a very common pain point, and usually more solvable than people think. We typically map out the full workflow first, then identify the 2–3 bottlenecks where automation delivers the biggest impact.",
+  'AI Integration & Deployment':
+    "Totally understandable. Integration challenges are why ~80% of AI projects never make it to production. Our approach is to start small with a single high-value integration, prove it out, then expand.",
+  'Data Infrastructure':
+    "You're not alone there — messy data is the #1 blocker we see across every industry. The key is not trying to fix everything at once. We identify the critical data pipelines first and build from there.",
+  'AI Agent Systems':
+    "That's a challenge we enjoy solving. The trick with agents is defining clear guardrails and decision boundaries before you build. We've learned that the hard way so our clients don't have to.",
+  'Not sure yet':
+    "That makes sense. Honestly, just the fact that you're thinking about this puts you ahead of most companies. Let me ask a few more questions so we can figure out the best path forward together.",
+};
+
+/* ─── Urgency qualifiers ─── */
+const TIMELINE_RESPONSES = {
+  'ASAP — we need help now':
+    "Got it — we'll prioritize getting you connected with a senior consultant. We can usually have a discovery call on the books within 48 hours.",
+  'Next 1–3 months':
+    "Good timeline. That gives us room to be thoughtful about scoping. We'll set up a discovery call to map out the engagement and make sure we're aligned before kickoff.",
+  'Next 3–6 months':
+    "Perfect — that gives us time to do this right. We can start with a lightweight strategy session to help you plan, so when you're ready to move you're not starting from zero.",
+  'Just exploring':
+    "Nothing wrong with that. Some of our best client relationships started as 'just exploring.' Let me get your info so we can send over some relevant case studies and stay in touch.",
+};
 
 function now() {
   return new Date().toISOString();
@@ -31,7 +94,9 @@ export default function Chatbot() {
     interest: '',
     challenge: '',
     company: '',
+    role: '',
     revenue: '',
+    timeline: '',
     name: '',
     email: '',
   });
@@ -69,11 +134,15 @@ export default function Chatbot() {
     hasGreeted.current = true;
     setPulse(false);
     addBot(
-      "Hey there! I'm the Archos AI assistant. I can help you figure out if AI is a fit for your business.",
+      "Hey — welcome to Archos AI. I'm here to help you figure out how AI can move the needle for your business.",
       undefined,
       300
     );
-    addBot('What are you most interested in?', SERVICE_OPTIONS, 1200);
+    addBot(
+      "We work with companies doing $1M+ in revenue on AI strategy, automation, and deployment. What area are you most interested in?",
+      SERVICE_OPTIONS,
+      1400
+    );
     setStep('interest');
   }, []);
 
@@ -85,6 +154,26 @@ export default function Chatbot() {
   async function submitLead(data) {
     if (submitted) return;
     setSubmitted(true);
+
+    // Score the lead based on qualifying data
+    let score = 0;
+    const revenueIndex = REVENUE_OPTIONS.indexOf(data.revenue);
+    if (revenueIndex >= 5) score += 30;       // $50M+
+    else if (revenueIndex >= 3) score += 20;  // $10M+
+    else if (revenueIndex >= 1) score += 10;  // $1M+
+
+    if (data.timeline === 'ASAP — we need help now') score += 30;
+    else if (data.timeline === 'Next 1–3 months') score += 20;
+    else if (data.timeline === 'Next 3–6 months') score += 10;
+
+    const seniorRoles = ['CEO / Founder', 'CTO / VP Engineering', 'COO / Operations'];
+    if (seniorRoles.includes(data.role)) score += 20;
+    else if (data.role === 'Head of Product' || data.role === 'Director / Manager') score += 10;
+
+    if (data.interest !== 'Not sure yet') score += 10;
+
+    const priority = score >= 60 ? 'high' : score >= 30 ? 'medium' : 'low';
+
     try {
       await fetch('/api/leads', {
         method: 'POST',
@@ -95,7 +184,13 @@ export default function Chatbot() {
           company: data.company,
           revenue: data.revenue,
           phone: '',
-          message: `Interest: ${data.interest}. Challenge: ${data.challenge}`,
+          message: [
+            `Interest: ${data.interest}`,
+            `Challenge: ${data.challenge}`,
+            `Role: ${data.role}`,
+            `Timeline: ${data.timeline}`,
+            `Lead Score: ${score}/100 (${priority})`,
+          ].join(' | '),
           source: 'chatbot',
         }),
       });
@@ -106,67 +201,152 @@ export default function Chatbot() {
 
   function processInput(text) {
     addUser(text);
+    // Clear any active quick replies
     setMessages((prev) => prev.map((m) => ({ ...m, quickReplies: undefined })));
 
     switch (step) {
-      case 'interest':
+      case 'interest': {
         setLeadData((d) => ({ ...d, interest: text }));
+        const response = INTEREST_RESPONSES[text] || INTEREST_RESPONSES['Not sure yet'];
+        addBot(response);
         addBot(
-          `Great choice — ${text.toLowerCase()} is one of the highest-ROI areas we work in. What's the biggest challenge you're facing right now that made you explore AI?`
+          "Tell me a bit about what's going on — what's the biggest challenge or opportunity that brought you here today?",
+          undefined,
+          1400
         );
         setStep('challenge');
         break;
-      case 'challenge':
+      }
+
+      case 'challenge': {
         setLeadData((d) => ({ ...d, challenge: text }));
-        addBot(
-          "That's a challenge we've helped other companies solve. So I can point you in the right direction — what's your company name?"
-        );
+        const followup = CHALLENGE_FOLLOWUPS[leadData.interest] || CHALLENGE_FOLLOWUPS['Not sure yet'];
+        addBot(followup);
+        addBot("What's your company name? I want to make sure our team has the right context.", undefined, 1200);
         setStep('company');
         break;
-      case 'company':
+      }
+
+      case 'company': {
         setLeadData((d) => ({ ...d, company: text }));
         addBot(
-          "And roughly what's your annual revenue? This helps us recommend the right engagement scope.",
+          `${text} — got it. And what's your role there? This helps us connect you with the right person on our end.`,
+          ROLE_OPTIONS
+        );
+        setStep('role');
+        break;
+      }
+
+      case 'role': {
+        setLeadData((d) => ({ ...d, role: text }));
+        addBot(
+          "Helpful, thanks. One more qualifying question — roughly what annual revenue range is the company in? No need to be exact, this just helps us scope the right engagement.",
           REVENUE_OPTIONS
         );
         setStep('revenue');
         break;
-      case 'revenue':
+      }
+
+      case 'revenue': {
         setLeadData((d) => ({ ...d, revenue: text }));
-        addBot("Perfect. Last couple of things so our team can follow up — what's your name?");
+        addBot(
+          "And what does your timeline look like? Are you looking to move on this soon, or still in research mode?",
+          TIMELINE_OPTIONS
+        );
+        setStep('timeline');
+        break;
+      }
+
+      case 'timeline': {
+        setLeadData((d) => ({ ...d, timeline: text }));
+        const response = TIMELINE_RESPONSES[text] || TIMELINE_RESPONSES['Just exploring'];
+        addBot(response);
+        addBot("Almost done — what's your name?", undefined, 1000);
         setStep('name');
         break;
-      case 'name':
+      }
+
+      case 'name': {
         setLeadData((d) => ({ ...d, name: text }));
-        addBot(`Nice to meet you, ${text.split(' ')[0]}! What's the best email to reach you at?`);
+        const firstName = text.split(' ')[0];
+        addBot(
+          `Great to meet you, ${firstName}. Last thing — what's the best email for our team to reach you?`
+        );
         setStep('email');
         break;
+      }
+
       case 'email': {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text.trim())) {
-          addBot("That doesn't look like a valid email. Could you double-check?");
+          addBot("Hmm, that doesn't look quite right. Could you double-check the email format?");
           return;
         }
         const finalData = { ...leadData, email: text.trim() };
         setLeadData(finalData);
         submitLead(finalData);
+
+        const firstName = leadData.name.split(' ')[0];
+        const isUrgent = leadData.timeline === 'ASAP — we need help now';
+
         addBot(
-          `Thank you, ${leadData.name.split(' ')[0]}! I've passed your info along to our team. You'll hear from us within 24 hours to schedule a discovery call.`,
+          isUrgent
+            ? `Perfect, ${firstName}. Given your timeline, I'm flagging this as priority. One of our senior consultants will reach out within 24 hours to get a discovery call scheduled.`
+            : `Perfect, ${firstName}. I've shared everything with our team. You'll hear from someone within 24 hours to set up a discovery call — no pressure, no sales pitch, just a real conversation about what's possible.`,
           undefined,
           600
         );
         addBot(
-          'In the meantime, feel free to explore our services or ask me anything else about what we do.',
-          undefined,
+          "In the meantime, if you have any quick questions about how we work, I'm happy to answer.",
+          ['How does pricing work?', 'What does a typical engagement look like?', 'What industries do you work with?'],
           1400
         );
         setStep('complete');
         break;
       }
-      case 'complete':
-        addBot(
-          "If you have more questions, feel free to ask! Otherwise, our team will be in touch soon."
-        );
+
+      case 'complete': {
+        const lower = text.toLowerCase();
+        if (lower.includes('pricing') || lower.includes('cost') || lower.includes('price') || lower.includes('how much')) {
+          addBot(
+            "We don't do one-size-fits-all pricing. Every engagement is scoped based on the complexity and timeline. That said, our strategy sprints start around $15K and full implementations range from $50K–$250K+ depending on scope.",
+            undefined,
+            400
+          );
+          addBot(
+            "Your consultant will walk through options during the discovery call and give you a clear picture — no hidden fees, no surprises.",
+            undefined,
+            1200
+          );
+        } else if (lower.includes('engagement') || lower.includes('typical') || lower.includes('process') || lower.includes('how do you work')) {
+          addBot(
+            "Typically it starts with a 2–3 week discovery and audit phase where we map your operations, identify AI opportunities, and prioritize by ROI. From there, we move into architecture, build, and deployment.",
+            undefined,
+            400
+          );
+          addBot(
+            "Most engagements run 3–6 months from kickoff to production. We stay involved through deployment and usually transition to an ongoing advisory relationship.",
+            undefined,
+            1200
+          );
+        } else if (lower.includes('industr') || lower.includes('sector') || lower.includes('who do you work with') || lower.includes('client')) {
+          addBot(
+            "We work across financial services, healthcare, e-commerce, logistics, and enterprise SaaS. The common thread is companies with complex operations and enough scale where AI creates measurable impact — usually $1M+ in annual revenue.",
+            undefined,
+            400
+          );
+          addBot(
+            "We've driven $340M+ in documented client impact across 47 engagements with an average 12x ROI. Our consultants come from backgrounds at FAANG, McKinsey, and top AI research labs.",
+            undefined,
+            1200
+          );
+        } else {
+          addBot(
+            "Good question. Our team will be able to give you a much more detailed answer on the discovery call. Is there anything else I can help with in the meantime?",
+            ['How does pricing work?', 'What does a typical engagement look like?', 'What industries do you work with?']
+          );
+        }
         break;
+      }
     }
   }
 
