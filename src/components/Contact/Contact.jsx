@@ -3,14 +3,13 @@ import './Contact.css';
 
 const REVENUE_OPTIONS = [
   { value: '', label: 'Select range' },
+  { value: 'under-1', label: 'Less than $1M' },
   { value: '1-5', label: '$1M \u2013 $5M' },
   { value: '5-10', label: '$5M \u2013 $10M' },
   { value: '10-25', label: '$10M \u2013 $25M' },
   { value: '25-50', label: '$25M \u2013 $50M' },
   { value: '50-100', label: '$50M \u2013 $100M' },
-  { value: '100-250', label: '$100M \u2013 $250M' },
-  { value: '250-500', label: '$250M \u2013 $500M' },
-  { value: '500+', label: '$500M+' },
+  { value: '100+', label: '$100M+' },
 ];
 
 const EXPECTATIONS = [
@@ -44,6 +43,19 @@ export default function Contact() {
 
   const handleSubmit = useCallback((e) => {
     e.preventDefault();
+    const formData = new FormData(e.target);
+    fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        company: formData.get('company'),
+        revenue: formData.get('revenue'),
+        message: formData.get('message'),
+        source: 'form',
+      }),
+    }).catch(() => {});
     setSent(true);
     setTimeout(() => setSent(false), FORM_SUCCESS_DURATION_MS);
   }, []);
@@ -136,9 +148,6 @@ export default function Contact() {
                 >
                   {sent ? "Sent \u2014 We'll be in touch" : 'Request a Briefing'}
                 </button>
-                <span className="contact-form-note">
-                  No commitment required. NDA available on request.
-                </span>
               </div>
             </form>
           </div>

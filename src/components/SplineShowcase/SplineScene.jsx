@@ -1,17 +1,16 @@
-import { Suspense, lazy } from 'react';
+'use client';
 
-const Spline = lazy(() => import('@splinetool/react-spline'));
+import dynamic from 'next/dynamic';
+
+const Spline = dynamic(() => import('@splinetool/react-spline'), {
+  ssr: false,
+  loading: () => (
+    <div className="spline-loader">
+      <div className="spline-loader-spinner" />
+    </div>
+  ),
+});
 
 export default function SplineScene({ scene, className = '', style = {} }) {
-  return (
-    <Suspense
-      fallback={
-        <div className="spline-loader">
-          <div className="spline-loader-spinner" />
-        </div>
-      }
-    >
-      <Spline scene={scene} className={className} style={style} />
-    </Suspense>
-  );
+  return <Spline scene={scene} className={className} style={style} />;
 }

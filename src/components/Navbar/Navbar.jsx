@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Logo from '../Logo/Logo';
 import { useScrollPosition } from '../../hooks/useScrollPosition';
 import './Navbar.css';
@@ -15,6 +16,9 @@ export default function Navbar() {
   const scrolled = useScrollPosition(60);
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
+  const clickCountRef = useRef(0);
+  const clickTimerRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     function updateActive() {
@@ -56,7 +60,20 @@ export default function Navbar() {
         <a
           href="#hero"
           className="nav-logo"
-          onClick={(e) => handleSmoothScroll(e, '#hero')}
+          onClick={(e) => {
+            e.preventDefault();
+            clickCountRef.current += 1;
+            if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+            if (clickCountRef.current >= 5) {
+              clickCountRef.current = 0;
+              router.push('/admin/login');
+              return;
+            }
+            clickTimerRef.current = setTimeout(() => {
+              clickCountRef.current = 0;
+            }, 2000);
+            handleSmoothScroll(e, '#hero');
+          }}
         >
           <Logo />
           <span className="logo-wordmark">ARCHOS AI</span>

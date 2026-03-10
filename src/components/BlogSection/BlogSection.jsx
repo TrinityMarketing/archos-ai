@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ARTICLES } from '../../data/articles';
 import './BlogSection.css';
 
@@ -28,7 +28,7 @@ export default function BlogSection() {
       <div className={`blog-section-inner${visible ? ' visible' : ''}`}>
         <div className="blog-section-top">
           <h2 className="section-heading">Insights</h2>
-          <Link to="/blog" className="blog-section-all">
+          <Link href="/blog" className="blog-section-all">
             View all articles
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <path d="M1 7h12M8 2l5 5-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
@@ -39,7 +39,7 @@ export default function BlogSection() {
         <div className="blog-grid">
           {ARTICLES.map((article, i) => (
             <Link
-              to={`/blog/${article.slug}`}
+              href={`/blog/${article.slug}`}
               key={article.slug}
               className="blog-card"
               style={{ transitionDelay: visible ? `${i * 100}ms` : '0ms' }}

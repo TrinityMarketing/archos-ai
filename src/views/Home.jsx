@@ -12,6 +12,8 @@ import BlogSection from '../components/BlogSection/BlogSection';
 import Contact from '../components/Contact/Contact';
 import Footer from '../components/Footer/Footer';
 import CursorGlow from '../components/CursorGlow/CursorGlow';
+import CookieBanner from '../components/CookieBanner/CookieBanner';
+import Chatbot from '../components/Chatbot/Chatbot';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 
 export default function Home() {
@@ -35,6 +37,8 @@ export default function Home() {
         <Contact />
         <Footer />
       </main>
+      <CookieBanner />
+      <Chatbot />
     </>
   );
 }
