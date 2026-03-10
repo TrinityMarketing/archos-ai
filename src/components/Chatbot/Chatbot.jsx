@@ -4,7 +4,7 @@ import './Chatbot.css';
 const SERVICE_OPTIONS = [
   'AI Strategy & Consulting',
   'Workflow Automation',
-  'Custom Model Development',
+  'AI Integration & Deployment',
   'Data Infrastructure',
   'AI Agent Systems',
   'Something else',
