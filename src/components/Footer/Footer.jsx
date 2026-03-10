@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import Logo from '../Logo/Logo';
 import './Footer.css';
 
@@ -46,9 +47,9 @@ export default function Footer() {
         <div className="footer-bottom">
           <span className="footer-copy">&copy; 2026 Archos AI. All rights reserved.</span>
           <div className="footer-legal">
-            <a href="#">Privacy Policy</a>
+            <Link href="/privacy">Privacy Policy</Link>
             <span className="footer-legal-sep" />
-            <a href="#">Terms of Service</a>
+            <Link href="/terms">Terms of Service</Link>
           </div>
         </div>
       </div>
