@@ -174,6 +174,13 @@ export default function Chatbot() {
 
     const priority = score >= 60 ? 'high' : score >= 30 ? 'medium' : 'low';
 
+    // Build conversation transcript for storage
+    const conversationMessages = messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp,
+    }));
+
     try {
       await fetch('/api/leads', {
         method: 'POST',
@@ -183,15 +190,14 @@ export default function Chatbot() {
           email: data.email,
           company: data.company,
           revenue: data.revenue,
-          phone: '',
-          message: [
-            `Interest: ${data.interest}`,
-            `Challenge: ${data.challenge}`,
-            `Role: ${data.role}`,
-            `Timeline: ${data.timeline}`,
-            `Lead Score: ${score}/100 (${priority})`,
-          ].join(' | '),
+          role: data.role,
+          interest: data.interest,
+          timeline: data.timeline,
+          message: data.challenge,
           source: 'chatbot',
+          score,
+          priority,
+          conversationMessages,
         }),
       });
     } catch {

@@ -27,6 +27,49 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Helpers & shared components                                       */
+/* ------------------------------------------------------------------ */
+const STATUS_COLORS = {
+  new: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+  contacted: { bg: 'rgba(245,158,11,0.15)', color: '#fbbf24' },
+  qualified: { bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
+  converted: { bg: 'rgba(200,169,126,0.15)', color: '#c8a97e' },
+  lost: { bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
+  active: { bg: 'rgba(34,197,94,0.15)', color: '#4ade80' },
+  completed: { bg: 'rgba(59,130,246,0.15)', color: '#60a5fa' },
+  abandoned: { bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
+};
+
+const SOURCE_COLORS = {
+  chatbot: { bg: 'rgba(168,85,247,0.15)', color: '#c084fc' },
+  form: { bg: 'rgba(6,182,212,0.15)', color: '#22d3ee' },
+};
+
+function Badge({ type, value }) {
+  const palette = type === 'source' ? SOURCE_COLORS : STATUS_COLORS;
+  const style = palette[value] || { bg: 'rgba(138,138,138,0.15)', color: '#8a8a8a' };
+  return <span className="badge" style={{ background: style.bg, color: style.color }}>{value}</span>;
+}
+
+function Avatar({ name }) {
+  const initials = (name || '?').split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+  return <div className="avatar">{initials}</div>;
+}
+
+function fmtDate(d) {
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function DetailRow({ label, value }) {
+  return (
+    <div className="detail-section">
+      <div className="detail-label">{label}</div>
+      <div className="detail-value">{value}</div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Sidebar icons (simple SVGs)                                       */
 /* ------------------------------------------------------------------ */
 const icons = {
@@ -162,7 +205,7 @@ export default function AdminDashboard() {
 }
 
 /* ==================================================================
-   HOOK: Fetch Vercel Analytics
+   HOOKS
    ================================================================== */
 function useVercelAnalytics(period = '30d') {
   const [analytics, setAnalytics] = useState({ source: 'mock', data: null, loading: true });
@@ -179,11 +222,43 @@ function useVercelAnalytics(period = '30d') {
   return analytics;
 }
 
+function useLeads() {
+  const [state, setState] = useState({ leads: [], loading: true });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/leads')
+      .then((r) => r.json())
+      .then((json) => { if (!cancelled) setState({ leads: json.leads || [], loading: false }); })
+      .catch(() => { if (!cancelled) setState({ leads: [], loading: false }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return state;
+}
+
+function useConversations() {
+  const [state, setState] = useState({ conversations: [], loading: true });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/conversations')
+      .then((r) => r.json())
+      .then((json) => { if (!cancelled) setState({ conversations: json.conversations || [], loading: false }); })
+      .catch(() => { if (!cancelled) setState({ conversations: [], loading: false }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return state;
+}
+
 /* ==================================================================
    DASHBOARD TAB
    ================================================================== */
 function DashboardTab() {
   const { source: analyticsSource, data: vercelData, loading } = useVercelAnalytics('30d');
+  const { leads, loading: leadsLoading } = useLeads();
+  const { conversations, loading: convosLoading } = useConversations();
 
   const totalViews = vercelData?.overview?.pageViews ?? 0;
   const uniqueVisitors = vercelData?.overview?.visitors ?? 0;
@@ -199,6 +274,8 @@ function DashboardTab() {
     return [];
   }, [vercelData]);
 
+  const recentLeads = useMemo(() => leads.slice(0, 6), [leads]);
+
   return (
     <div className="tab-content">
       <h1 className="tab-title">Dashboard</h1>
@@ -213,8 +290,8 @@ function DashboardTab() {
       <div className="stat-grid">
         <StatCard label="Page Views (30d)" value={totalViews.toLocaleString()} change={analyticsSource === 'vercel' ? 'Live data' : undefined} />
         <StatCard label="Unique Visitors (30d)" value={uniqueVisitors.toLocaleString()} change={analyticsSource === 'vercel' ? 'Live data' : undefined} />
-        <StatCard label="Total Leads" value="0" change="Leads will appear here" />
-        <StatCard label="Conversations" value="0" change="Chats will appear here" />
+        <StatCard label="Total Leads" value={leadsLoading ? '...' : leads.length.toString()} />
+        <StatCard label="Conversations" value={convosLoading ? '...' : conversations.length.toString()} />
       </div>
 
       {/* Traffic chart */}
@@ -240,9 +317,28 @@ function DashboardTab() {
         </div>
       )}
 
-      {chartData.length === 0 && !loading && (
+      {/* Recent leads */}
+      {recentLeads.length > 0 && (
+        <div className="chart-card full">
+          <h3 className="chart-card-title">Recent Leads</h3>
+          <div className="recent-list">
+            {recentLeads.map((lead) => (
+              <div key={lead.id} className="recent-item">
+                <Avatar name={lead.name} />
+                <div className="recent-item-info">
+                  <span className="recent-item-name">{lead.name}</span>
+                  <span className="recent-item-sub">{lead.company || lead.email}</span>
+                </div>
+                <Badge type="source" value={lead.source} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {chartData.length === 0 && leads.length === 0 && !loading && !leadsLoading && (
         <div className="empty-state-card">
-          <p className="empty-state-text">No traffic data yet. Analytics will appear here once your site receives visitors.</p>
+          <p className="empty-state-text">No data yet. Analytics and leads will appear here as your site gets traffic.</p>
         </div>
       )}
     </div>
@@ -253,16 +349,113 @@ function DashboardTab() {
    LEADS TAB
    ================================================================== */
 function LeadsTab() {
+  const { leads, loading } = useLeads();
+  const [search, setSearch] = useState('');
+  const [selectedLead, setSelectedLead] = useState(null);
+
+  const filtered = useMemo(() => {
+    if (!search) return leads;
+    const q = search.toLowerCase();
+    return leads.filter((l) =>
+      l.name?.toLowerCase().includes(q) ||
+      l.email?.toLowerCase().includes(q) ||
+      l.company?.toLowerCase().includes(q)
+    );
+  }, [leads, search]);
+
+  if (loading) {
+    return <div className="tab-content"><h1 className="tab-title">Leads</h1><p className="empty-state-text">Loading...</p></div>;
+  }
+
+  if (leads.length === 0) {
+    return (
+      <div className="tab-content">
+        <h1 className="tab-title">Leads</h1>
+        <div className="empty-state-card">
+          <div className="empty-state-icon">{icons.leads}</div>
+          <h3 className="empty-state-heading">No leads yet</h3>
+          <p className="empty-state-text">
+            Leads captured by the chatbot and contact form will appear here automatically.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="tab-content">
-      <h1 className="tab-title">Leads</h1>
-      <div className="empty-state-card">
-        <div className="empty-state-icon">{icons.leads}</div>
-        <h3 className="empty-state-heading">No leads yet</h3>
-        <p className="empty-state-text">
-          Leads captured by the chatbot and contact form will appear here.
-          Once your lead pipeline is connected, you&apos;ll see real-time data.
-        </p>
+      <h1 className="tab-title">Leads ({leads.length})</h1>
+
+      <div className="leads-toolbar">
+        <div className="search-box">
+          {icons.search}
+          <input type="text" placeholder="Search leads..." value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="leads-body">
+        <div className={`leads-table-wrap ${selectedLead ? 'with-detail' : ''}`}>
+          <table className="leads-table">
+            <thead>
+              <tr>
+                <th>Name / Email</th>
+                <th>Company</th>
+                <th>Source</th>
+                <th>Score</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((lead) => (
+                <tr key={lead.id} className={selectedLead?.id === lead.id ? 'selected' : ''} onClick={() => setSelectedLead(lead)}>
+                  <td>
+                    <div className="lead-name-cell">
+                      <Avatar name={lead.name} />
+                      <div>
+                        <div className="cell-primary">{lead.name}</div>
+                        <div className="cell-secondary">{lead.email}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{lead.company || '—'}</td>
+                  <td><Badge type="source" value={lead.source} /></td>
+                  <td><span className={`score-badge score-${lead.priority || 'medium'}`}>{lead.score || 0}</span></td>
+                  <td className="cell-secondary">{fmtDate(lead.created_at)}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan="5" className="empty-row">No leads match your search.</td></tr>
+              )}
+            </tbody>
+          </table>
+
+          {selectedLead && (
+            <div className="lead-detail-panel">
+              <div className="detail-header">
+                <h3>Lead Details</h3>
+                <button className="detail-close" onClick={() => setSelectedLead(null)}>{icons.close}</button>
+              </div>
+              <div className="detail-body">
+                <div className="detail-avatar-row">
+                  <Avatar name={selectedLead.name} />
+                  <div>
+                    <div className="detail-name">{selectedLead.name}</div>
+                    <div className="detail-email">{selectedLead.email}</div>
+                  </div>
+                </div>
+                {selectedLead.company && <DetailRow label="Company" value={selectedLead.company} />}
+                {selectedLead.role && <DetailRow label="Role" value={selectedLead.role} />}
+                {selectedLead.revenue && <DetailRow label="Revenue" value={selectedLead.revenue} />}
+                {selectedLead.interest && <DetailRow label="Interest" value={selectedLead.interest} />}
+                {selectedLead.timeline && <DetailRow label="Timeline" value={selectedLead.timeline} />}
+                <DetailRow label="Source" value={selectedLead.source} />
+                <DetailRow label="Score" value={`${selectedLead.score || 0} (${selectedLead.priority || 'medium'})`} />
+                {selectedLead.message && <DetailRow label="Notes" value={selectedLead.message} />}
+                <DetailRow label="Date" value={fmtDate(selectedLead.created_at)} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -272,16 +465,83 @@ function LeadsTab() {
    CONVERSATIONS TAB
    ================================================================== */
 function ConversationsTab() {
+  const { conversations, loading } = useConversations();
+  const [selected, setSelected] = useState(null);
+
+  const activeConvo = selected || conversations[0] || null;
+
+  if (loading) {
+    return <div className="tab-content"><h1 className="tab-title">Conversations</h1><p className="empty-state-text">Loading...</p></div>;
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <div className="tab-content">
+        <h1 className="tab-title">Conversations</h1>
+        <div className="empty-state-card">
+          <div className="empty-state-icon">{icons.conversations}</div>
+          <h3 className="empty-state-heading">No conversations yet</h3>
+          <p className="empty-state-text">
+            Chatbot conversations will appear here once visitors start interacting with the AI assistant on your site.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="tab-content">
-      <h1 className="tab-title">Conversations</h1>
-      <div className="empty-state-card">
-        <div className="empty-state-icon">{icons.conversations}</div>
-        <h3 className="empty-state-heading">No conversations yet</h3>
-        <p className="empty-state-text">
-          Chatbot conversations will appear here once visitors start interacting
-          with the AI assistant on your site.
-        </p>
+    <div className="tab-content conversations-layout">
+      <div className="convo-list-panel">
+        <div className="convo-list">
+          {conversations.map((c) => (
+            <div
+              key={c.id}
+              className={`convo-list-item ${activeConvo?.id === c.id ? 'active' : ''}`}
+              onClick={() => setSelected(c)}
+            >
+              <div className="convo-list-item-top">
+                <span className="convo-list-name">{c.visitor_name || 'Anonymous'}</span>
+                <Badge type="status" value={c.status} />
+              </div>
+              <p className="convo-list-preview">
+                {Array.isArray(c.messages) && c.messages.length > 0
+                  ? c.messages[c.messages.length - 1]?.content?.slice(0, 80)
+                  : 'No messages'}...
+              </p>
+              <span className="convo-list-date">{fmtDate(c.created_at)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="convo-chat-panel">
+        {activeConvo ? (
+          <>
+            <div className="convo-chat-header">
+              <div>
+                <h3 className="convo-chat-name">{activeConvo.visitor_name || 'Anonymous'}</h3>
+                <span className="convo-chat-email">{activeConvo.visitor_email || ''}</span>
+              </div>
+              <div className="convo-chat-meta">
+                <span>{fmtDate(activeConvo.created_at)}</span>
+                <Badge type="status" value={activeConvo.status} />
+              </div>
+            </div>
+            <div className="convo-chat-messages">
+              {Array.isArray(activeConvo.messages) && activeConvo.messages.map((msg, i) => (
+                <div key={i} className={`chat-bubble ${msg.role === 'bot' ? 'bot' : 'user'}`}>
+                  <div className="chat-bubble-inner">
+                    <p>{msg.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="convo-empty-state">
+            <p>Select a conversation to view</p>
+          </div>
+        )}
       </div>
     </div>
   );
