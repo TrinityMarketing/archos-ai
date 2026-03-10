@@ -229,15 +229,50 @@ export default function AdminDashboard() {
 }
 
 /* ==================================================================
+   HOOK: Fetch Vercel Analytics
+   ================================================================== */
+function useVercelAnalytics(period = '30d') {
+  const [analytics, setAnalytics] = useState({ source: 'mock', data: null, loading: true });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/admin/analytics?period=${period}`)
+      .then((r) => r.json())
+      .then((json) => { if (!cancelled) setAnalytics({ ...json, loading: false }); })
+      .catch(() => { if (!cancelled) setAnalytics({ source: 'mock', data: null, loading: false }); });
+    return () => { cancelled = true; };
+  }, [period]);
+
+  return analytics;
+}
+
+/* ==================================================================
    DASHBOARD TAB
    ================================================================== */
 function DashboardTab() {
+  const { source: analyticsSource, data: vercelData } = useVercelAnalytics('30d');
+
   const totalLeads = mockLeads.length;
   const converted = mockLeads.filter((l) => l.status === 'converted').length;
   const conversionRate = totalLeads ? Math.round((converted / totalLeads) * 100) : 0;
   const activeChats = mockConversations.filter((c) => c.status === 'active').length;
   const totalChats = mockConversations.length;
-  const totalViews = mockAnalytics.reduce((s, d) => s + d.pageViews, 0);
+
+  // Use Vercel data if available, otherwise mock
+  const totalViews = vercelData?.overview?.pageViews ?? mockAnalytics.reduce((s, d) => s + d.pageViews, 0);
+  const uniqueVisitors = vercelData?.overview?.visitors ?? mockAnalytics.reduce((s, d) => s + d.uniqueVisitors, 0);
+
+  // Build chart data from Vercel timeseries or mock
+  const chartData = useMemo(() => {
+    if (vercelData?.timeseries?.data) {
+      return vercelData.timeseries.data.map((d) => ({
+        date: new Date(d.timestamp || d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        pageViews: d.pageViews ?? d.visitors ?? 0,
+        uniqueVisitors: d.visitors ?? d.uniqueVisitors ?? 0,
+      }));
+    }
+    return mockAnalytics;
+  }, [vercelData]);
 
   const sourceData = useMemo(() => {
     const counts = {};
@@ -252,20 +287,26 @@ function DashboardTab() {
     <div className="tab-content">
       <h1 className="tab-title">Dashboard</h1>
 
+      {analyticsSource === 'mock' && (
+        <div className="analytics-notice">
+          Using sample data. Add <code>VERCEL_ANALYTICS_TOKEN</code> in Vercel env vars for live analytics.
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="stat-grid">
         <StatCard label="Total Leads" value={totalLeads} change="+3 this week" />
         <StatCard label="Conversion Rate" value={`${conversionRate}%`} change="+2% vs last month" />
         <StatCard label="Active Chats" value={`${activeChats} of ${totalChats}`} />
-        <StatCard label="Page Views (30d)" value={totalViews.toLocaleString()} change="+12% vs prior" />
+        <StatCard label="Page Views (30d)" value={totalViews.toLocaleString()} change={analyticsSource === 'vercel' ? 'Live data' : 'Sample data'} />
       </div>
 
       {/* Charts row */}
       <div className="chart-row">
         <div className="chart-card wide">
-          <h3 className="chart-card-title">Traffic Overview</h3>
+          <h3 className="chart-card-title">Traffic Overview {analyticsSource === 'vercel' && <span className="live-badge">LIVE</span>}</h3>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={mockAnalytics}>
+            <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="gradGold" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#c8a97e" stopOpacity={0.3} />
@@ -632,7 +673,18 @@ function ConversationsTab() {
    ANALYTICS TAB
    ================================================================== */
 function AnalyticsTab() {
+  const [period, setPeriod] = useState('30d');
+  const { source: analyticsSource, data: vercelData } = useVercelAnalytics(period);
+
   const totals = useMemo(() => {
+    if (vercelData?.overview) {
+      return {
+        pv: vercelData.overview.pageViews ?? 0,
+        uv: vercelData.overview.visitors ?? 0,
+        avgBounce: vercelData.overview.bounceRate ?? 0,
+        avgSession: vercelData.overview.avgDuration ?? 0,
+      };
+    }
     const pv = mockAnalytics.reduce((s, d) => s + d.pageViews, 0);
     const uv = mockAnalytics.reduce((s, d) => s + d.uniqueVisitors, 0);
     const avgBounce = mockAnalytics.length
@@ -642,7 +694,7 @@ function AnalyticsTab() {
       ? (mockAnalytics.reduce((s, d) => s + (d.avgSessionDuration || 0), 0) / mockAnalytics.length).toFixed(0)
       : 0;
     return { pv, uv, avgBounce, avgSession };
-  }, []);
+  }, [vercelData]);
 
   /* Daily new leads (count by date) */
   const dailyLeads = useMemo(() => {
@@ -675,21 +727,72 @@ function AnalyticsTab() {
 
   return (
     <div className="tab-content">
-      <h1 className="tab-title">Analytics</h1>
+      <div className="tab-title-row">
+        <h1 className="tab-title">Analytics</h1>
+        <div className="period-selector">
+          {['24h', '7d', '30d', '90d'].map((p) => (
+            <button key={p} className={`period-btn ${period === p ? 'active' : ''}`} onClick={() => setPeriod(p)}>
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {analyticsSource === 'mock' && (
+        <div className="analytics-notice">
+          Using sample data. Add <code>VERCEL_ANALYTICS_TOKEN</code> in Vercel env vars for live analytics.
+        </div>
+      )}
 
       {/* Stat cards */}
       <div className="stat-grid">
-        <StatCard label="Page Views" value={totals.pv.toLocaleString()} />
+        <StatCard label="Page Views" value={totals.pv.toLocaleString()} change={analyticsSource === 'vercel' ? 'Live' : undefined} />
         <StatCard label="Unique Visitors" value={totals.uv.toLocaleString()} />
         <StatCard label="Avg Bounce Rate" value={`${totals.avgBounce}%`} />
         <StatCard label="Avg Session Duration" value={`${totals.avgSession}s`} />
       </div>
 
+      {/* Top Pages & Referrers (only when live data is available) */}
+      {vercelData?.topPages?.data && (
+        <div className="chart-row">
+          <div className="chart-card wide">
+            <h3 className="chart-card-title">Top Pages <span className="live-badge">LIVE</span></h3>
+            <div className="top-list">
+              {vercelData.topPages.data.slice(0, 8).map((page, i) => (
+                <div key={i} className="top-list-item">
+                  <span className="top-list-rank">{i + 1}</span>
+                  <span className="top-list-name">{page.path || page.key}</span>
+                  <span className="top-list-value">{(page.pageViews ?? page.visitors ?? page.count ?? 0).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {vercelData?.topReferrers?.data && (
+            <div className="chart-card narrow">
+              <h3 className="chart-card-title">Top Referrers <span className="live-badge">LIVE</span></h3>
+              <div className="top-list">
+                {vercelData.topReferrers.data.slice(0, 8).map((ref, i) => (
+                  <div key={i} className="top-list-item">
+                    <span className="top-list-rank">{i + 1}</span>
+                    <span className="top-list-name">{ref.referrer || ref.key || 'Direct'}</span>
+                    <span className="top-list-value">{(ref.pageViews ?? ref.visitors ?? ref.count ?? 0).toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Large traffic chart */}
       <div className="chart-card full">
-        <h3 className="chart-card-title">Traffic Trend</h3>
+        <h3 className="chart-card-title">Traffic Trend {analyticsSource === 'vercel' && <span className="live-badge">LIVE</span>}</h3>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={mockAnalytics}>
+          <AreaChart data={vercelData?.timeseries?.data?.map((d) => ({
+            date: new Date(d.timestamp || d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            pageViews: d.pageViews ?? d.visitors ?? 0,
+            uniqueVisitors: d.visitors ?? d.uniqueVisitors ?? 0,
+          })) || mockAnalytics}>
             <defs>
               <linearGradient id="gradGold2" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#c8a97e" stopOpacity={0.3} />
