@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://archos-ai.vercel.app/sitemap.xml
+Sitemap: https://archosai.com/sitemap.xml

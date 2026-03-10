@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://archos-ai.vercel.app/</loc>
+    <loc>https://archosai.com/</loc>
     <lastmod>2026-03-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://archos-ai.vercel.app/blog</loc>
+    <loc>https://archosai.com/blog</loc>
     <lastmod>2026-03-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archos-ai.vercel.app/blog/ai-automation-transforming-enterprise-operations-2026</loc>
+    <loc>https://archosai.com/blog/ai-automation-transforming-enterprise-operations-2026</loc>
     <lastmod>2026-02-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://archos-ai.vercel.app/blog/roi-of-ai-intelligent-automation-investment</loc>
+    <loc>https://archosai.com/blog/roi-of-ai-intelligent-automation-investment</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://archos-ai.vercel.app/blog/manual-to-automated-ai-integration-guide</loc>
+    <loc>https://archosai.com/blog/manual-to-automated-ai-integration-guide</loc>
     <lastmod>2026-01-12</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

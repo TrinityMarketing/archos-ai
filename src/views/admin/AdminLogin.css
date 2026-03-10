@@ -132,3 +132,13 @@
 .admin-login-back:hover {
   color: var(--accent, #c8a97e);
 }
+
+@media (max-width: 480px) {
+  .admin-login-card {
+    padding: 36px 24px;
+  }
+
+  .admin-login-logo {
+    font-size: 24px;
+  }
+}

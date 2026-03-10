@@ -7,9 +7,10 @@ export const metadata = {
   keywords:
     'AI consulting, enterprise AI, AI automation, intelligent automation, AI integration, AI strategy, business automation, MLOps, AI agents, workflow automation',
   authors: [{ name: 'Archos AI' }],
+  metadataBase: new URL('https://archosai.com'),
   openGraph: {
     type: 'website',
-    url: 'https://archos-ai.vercel.app/',
+    url: 'https://archosai.com/',
     title: 'Archos AI | Enterprise AI Consulting & Automation',
     description:
       'We build AI systems that transform enterprise operations. Strategy, automation, and deployment for businesses doing $1M+ annually.',
@@ -24,10 +25,18 @@ export const metadata = {
   },
   icons: {
     icon: '/favicon.svg',
+    apple: '/apple-touch-icon.png',
   },
   alternates: {
-    canonical: 'https://archos-ai.vercel.app/',
+    canonical: 'https://archosai.com/',
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#0a0a0a',
 };
 
 export default function RootLayout({ children }) {
@@ -47,7 +56,7 @@ export default function RootLayout({ children }) {
               '@context': 'https://schema.org',
               '@type': 'Organization',
               name: 'Archos AI',
-              url: 'https://archos-ai.vercel.app',
+              url: 'https://archosai.com',
               description:
                 'Enterprise AI consulting and intelligent automation for businesses doing $1M+ annually.',
               email: 'engage@archos.ai',
