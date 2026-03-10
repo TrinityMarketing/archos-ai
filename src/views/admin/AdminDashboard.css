@@ -1232,3 +1232,48 @@
     justify-content: space-between;
   }
 }
+
+/* ==================================================================
+   EMPTY STATES
+   ================================================================== */
+.empty-state-card {
+  background: var(--card, #141414);
+  border: 1px solid var(--border, #1e1e1e);
+  border-radius: var(--radius, 2px);
+  padding: 60px 32px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.empty-state-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(200, 169, 126, 0.08);
+  color: var(--accent, #c8a97e);
+  margin-bottom: 16px;
+}
+
+.empty-state-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.empty-state-heading {
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text, #ededed);
+  margin: 0 0 8px;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  color: var(--text-muted, #8a8a8a);
+  line-height: 1.6;
+  max-width: 420px;
+  margin: 0 auto;
+}
