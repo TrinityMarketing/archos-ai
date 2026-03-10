@@ -29,7 +29,7 @@ export const metadata = {
     apple: '/apple-touch-icon.png',
   },
   alternates: {
-    canonical: 'https://archosai.com/',
+    canonical: 'https://archosai.com',
   },
 };
 
